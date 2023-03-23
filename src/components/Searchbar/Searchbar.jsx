@@ -8,7 +8,6 @@ export function Searchbar({ onSubmit }) {
   const handleChange = event => {
     const { value } = event.currentTarget;
     setName(value);
-    // this.setState({ [name]: value });
   };
 
   const handleSubmit = event => {

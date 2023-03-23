@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Searchbar } from 'components/Searchbar/Searchbar';
 import { ImageGallery } from 'components/ImageGallery/ImageGallery';
@@ -8,128 +8,90 @@ import { Loader } from 'components/Loader/Loader';
 import { fetchImages } from 'components/Api-Pixabay/Api-Pixabay';
 import css from 'components/App.module.css';
 
-export class App extends Component {
-  state = {
-    images: [],
-    isLoading: false,
-    error: null,
-    nameSearch: '',
-    page: 1,
-    total: 0,
-    largeImage: '',
-    showModal: false,
-  };
+export function App() {
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [nameSearch, setNameSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [largeImage, setLargeImage] = useState('');
+  const [showModal, setShowModal] = useState(false);
 
-  // async componentDidMount() {
-  //   this.setState({ isLoading: true });
-  //   const response = await axios.get(
-  //     `https://pixabay.com/api/?q='beauty'&page=1&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12&page=${this.state.page}`
-  //   );
-
-  //   try {
-  //     const images = response.data.hits;
-  //     this.setState({ images });
-  //   } catch (error) {
-  //     this.setState({ error });
-  //   } finally {
-  //     this.setState({ isLoading: false });
-  //   }
-  // }
-
-  async componentDidUpdate(prevProps, prevState) {
-    const name = this.state.nameSearch;
-    if (name !== prevState.nameSearch || this.state.page !== prevState.page) {
-      this.setState({ isLoading: true });
-
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
       try {
-        const data = await fetchImages({ name, page: this.state.page });
+        const data = await fetchImages({ name: nameSearch, page });
         const images = data.hits;
-        if (fetch.total === 0) {
-          this.setState({ error: 'error' });
+        if (data.total === 0) {
+          setError('error');
         }
         const pageTotal = Math.ceil(data.total / 12);
-        this.setState(prevState => ({
-          images: [...prevState.images, ...images],
-          total: pageTotal,
-        }));
+        setImages(prevState => [...prevState, ...images]);
+        setTotal(pageTotal);
       } catch (error) {
-        this.setState({ error });
+        setError(error);
       } finally {
-        this.setState({ isLoading: false });
+        setIsLoading(false);
       }
+    };
+    if (nameSearch) {
+      fetchData();
     }
-  }
+  }, [nameSearch, page]);
 
-  onSubmit = event => {
-    this.setState({
-      images: [],
-      error: null,
-      page: 1,
-      total: 0,
-
-      nameSearch: event,
-    });
+  const onSubmit = event => {
+    setImages([]);
+    setError(null);
+    setPage(1);
+    setTotal(0);
+    setNameSearch(event);
   };
 
-  onLoadMoreBtn = () => {
-    this.setState(prevState => {
-      if (this.state.page < this.state.total)
-        return { page: prevState.page + 1 };
-    });
-  };
-
-  openModal = largeImageURL => {
-    this.setState(state => ({
-      largeImage: largeImageURL,
-      showModal: true,
-    }));
-  };
-
-  onCloseModal = event => {
-    if (event.target.name !== 'imageBig') {
-      this.setState(state => ({
-        showModal: false,
-      }));
+  const onLoadMoreBtn = () => {
+    if (page < total) {
+      setPage(prevState => prevState + 1);
     }
   };
 
-  onPressEsc = event => {
-    if (event.code === 'Escape') {
-      this.setState(state => ({
-        showModal: false,
-      }));
-    }
+  const openModal = largeImageURL => {
+    setLargeImage(largeImageURL);
+    setShowModal(true);
   };
 
-  render() {
-    const { error, images, isLoading, page, total, showModal, largeImage } =
-      this.state;
-    return (
-      <div className={css.container}>
-        <Searchbar onSubmit={this.onSubmit} />
-        {error && (
-          <p>
-            По цьому запиту нічого не знайдено. Введіть, будь ласка, інший
-            запит.
-          </p>
-        )}
-        {images.length > 0 && (
-          <ImageGallery imageList={images} openModal={this.openModal} />
-        )}
-        {isLoading && <Loader />}
-        {images.length > 0 && page < total && !isLoading && (
-          <Button onLoadMoreBtn={this.onLoadMoreBtn} />
-        )}
-        {page === total && <p>This is last page</p>}
+  const onCloseModal = event => {
+    if (event.target.name !== 'imageBig') setShowModal(false);
+  };
 
-        {showModal && (
-          <Modal
-            largeImage={largeImage}
-            onCloseModal={this.onCloseModal}
-            onPressEsc={this.onPressEsc}
-          />
-        )}
-      </div>
-    );
-  }
+  const onPressEsc = event => {
+    if (event.code === 'Escape') setShowModal(false);
+  };
+
+  return (
+    <div className={css.container}>
+      <Searchbar onSubmit={onSubmit} />
+      {error && (
+        <p>
+          По цьому запиту нічого не знайдено. Введіть, будь ласка, інший запит.
+        </p>
+      )}
+      {images.length > 0 && (
+        <ImageGallery imageList={images} openModal={openModal} />
+      )}
+      {isLoading && <Loader />}
+      {images.length > 0 && page < total && !isLoading && (
+        <Button onLoadMoreBtn={onLoadMoreBtn} />
+      )}
+      {page === total && <p>This is last page</p>}
+
+      {showModal && (
+        <Modal
+          largeImage={largeImage}
+          onCloseModal={onCloseModal}
+          onPressEsc={onPressEsc}
+        />
+      )}
+    </div>
+  );
 }
